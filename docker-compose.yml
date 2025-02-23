@@ -1,0 +1,129 @@
+version: '3'
+services:
+  
+  mariadb-users:
+    container_name: mariadb-service
+    image: mariadb:latest
+    environment:
+      MYSQL_USER: usersService
+      MYSQL_PASSWORD: veryStrongPasswordQWERTY
+      MARIADB_ROOT_PASSWORD: STRONG_Pass
+      MARIADB_DATABASE: usersdb
+    ports:
+      - "3306:3306"
+
+  mariadb-products:
+    container_name: mariaProducts-service
+    image: mariadb:latest
+    environment:
+      MYSQL_USER: productsService
+      MYSQL_PASSWORD: veryStrongPasswordQWERTY
+      MARIADB_ROOT_PASSWORD: STRONG_Pass
+      MARIADB_DATABASE: productsdb
+    ports:
+      - "3307:3306"
+
+  users-service:
+    build:
+      context: ./service1
+    ports:
+      - "3001:3000"
+    container_name: users-service
+    depends_on:
+      - mariadb-users
+    environment:
+      - DATABASE_HOST=mariadb-users
+      - DATABASE_PORT=3306
+      - DATABASE_USER=usersService
+      - DATABASE_PASSWORD=veryStrongPasswordQWERTY
+      - DATABASE_NAME=usersdb  
+
+  products-service:
+    build:
+      context: ./service2
+    ports:
+      - "3002:3000"
+    container_name: products-service
+    depends_on:
+      - mariadb-products
+    environment:
+      - DATABASE_HOST=mariadb-products
+      - DATABASE_PORT=3306
+      - DATABASE_USER=productsService
+      - DATABASE_PASSWORD=veryStrongPasswordQWERTY
+      - DATABASE_NAME=productsdb
+
+  orders-service:
+    build:
+      context: ./service3
+    ports:
+      - "3003:3000"
+    container_name: orders-service
+    depends_on:
+      - mongodb-orders
+    environment:
+      - MONGODB_URI=mongodb://mongodbOrders-service:27017/mydatabase
+  
+  mongodb-orders:
+    container_name: mongodbOrders-service
+    image: mongo:latest
+    volumes:
+      - /data/db
+    ports:
+      - "27017:27017"
+  
+  reports-service:
+    build:
+      context: ./service4
+    ports:
+      - "3008:3000"
+    container_name: reports-service
+    depends_on:
+      - mongodb-reports
+  
+  mongodb-reports:
+    container_name: mongodbReports-service
+    image: mongo:latest
+    volumes:
+      - /data/reportsdb
+    ports:
+      - "27018:27017"
+
+  mongodb-security:
+    container_name: mongodbSecurity-service
+    image: mongo:latest
+    volumes:
+      - /data/securitydb
+    ports:
+      - "27019:27017"
+
+  chat-service:
+    build:
+      context: ./chat-service
+    ports:
+      - "3004:3000"
+    container_name: chat-service
+
+  service-security:
+    build:
+      context: ./service-security
+    ports:
+     - "3006:3000"
+    container_name: service-security
+    depends_on:
+      - users-service
+      - mongodb-security
+
+  apigateway:
+    build:
+      context: ./apigateway
+    ports:
+      - "80:80"
+    container_name: apigateway
+    depends_on:
+      - users-service
+      - products-service
+      - orders-service
+      - chat-service
+      - reports-service
+      - service-security
